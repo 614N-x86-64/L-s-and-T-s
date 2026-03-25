@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+
+    <html>
+        
+        <head>
+            <meta charset="UTF-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" /> 
+            <link rel="preconnect" href="https://fonts.googleapis.com">
+            <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+            <title>T vs L — Perceptron Classifier</title>
+
+            <style>
+
+                :root {
+
+                    --bg: #0f0a0a;
+                    --surface: #1a1010;
+                    --border: #2e1a1a;
+                    --border-hi: #3d2222;
+                    --text: #d4c0c0;
+                    --text-dim: #6b4a4a;
+                    --accent-t: #e04040;
+                    --accent-l: #ff6b6b;
+                    --cell-off: #1e1212;
+                    --cell-on: #c0282a;
+                    --cell-hover: #2d1818;
+                }
+                
+                *{ margin: 0; padding: 0; box-sizing: border-box; }
+
+
+                body {
+                    background: var(--bg);
+                    color: var(--text);
+                    font-family: 'IBM Plex Mono', monospace;
+                    min-height: 100vh;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                /* Main Container for Title and Grid */
+                .container {
+                    display: flex;
+                    padding: 40px;
+                    gap: 20px;
+                    flex-direction: column;
+                    align-items: center;
+                }
+
+                h1 
+                {
+                    font-family: 'IBM Plex Mono', monospace;
+                    font-size: 2rem;
+                    font-weight: 700;
+                    letter-spacing: 4px;
+                    text-transform: uppercase;
+                    color: var(--text-dim); 
+                }
+
+                /* Colors for T and L in the Title */
+                h1 span.t{ color: var(--accent-t); }
+                h1 span.l{ color: var(--accent-l); }
+                
+                /* Grid wrapper with Gradient Border */
+                .grid-wrapper {
+                    position: relative;
+                    padding: 3px;
+                    border-radius: 14px;
+                    background: linear-gradient(135deg, var(--accent-t) 0%, var(--accent-l) 100%);
+                    }
+                
+                /* 4x4 Grid */
+                .grid {
+                    display: grid;
+                    grid-template-columns: repeat(4, 1fr);
+                    gap: 3px;
+                    padding: 6px;
+                    border-radius: 12px;
+                    background: var(--surface);
+                }
+
+                /* Boxes in the Grid */
+
+                .cell {
+                    width: 50px;
+                    height: 50px;
+                    border-radius: 8px;
+                    background: var(--cell-off);
+                    cursor: pointer;
+                    transition: background 0.3s;
+                }
+
+
+                /* Active Cell */
+
+                .cell.on {
+                    background: var(--cell-on);
+                    border-color: var(--cell-on);
+                    transform: scale(1.05);
+                    box-shadow: 0 0 12px rgba(0,0,0,0.2);
+                }
+
+                .cell:hover {
+                    background: var(--cell-hover);
+                    border-color: var(--border-hi);
+                }
+
+                .row-labels {
+                    display: contents;
+                }
+
+                /* Controls and Buttons */
+
+                .controls {
+                    display: flex;
+                    gap: 12px;
+                }
+                
+                button {
+                    font-family: 'IBM Plex Mono', monospace;
+                    font-weight: 600;
+                    font-size: 13px;
+                    letter-spacing: 1.5px;
+                    text-transform: uppercase;
+                    padding: 12px 30px;
+                    border: none;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    transition: transform 0.2s, background 0.3s;
+                }
+
+                button:active {transform: scale(0.97);}
+
+                #predict {
+                    background: linear-gradient(135deg, var(--accent-t), #8b1a1a);
+                    color: #fff;
+                    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.25);
+                }
+
+                #predict:hover {
+                    box-shadow: 0 6px 30px rgba(245, 158, 11, 0.35);
+                }
+
+                #clear {
+                    background: var(--surface);
+                    color: var(--text-dim);
+                    border: 1px solid var(--border);
+                }
+
+                #clear:hover {
+                    background: var(--border-hi);
+                    color: var(--text);
+                }
+
+                .result-box {
+                    text-align: center;
+                    min-height: 90px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 6px;
+                }
+
+                .result-letter {
+                    font-size: 48px;
+                    font-weight: 700;
+                    line-height: 1;
+                    opacity: 0;
+                    transform: translateY(8px);
+                    transition: opacity 0.3s, transform 0.3s;
+                }
+
+                .result-letter.show {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+
+                .result-letter.is-t { color: var(--accent-t); }
+                .result-letter.is-l { color: var(--accent-l); }
+
+                .result-sub {
+                    font-size: 11px;
+                    color: var(--text-dim);
+                    letter-spacing: 2px;
+                    text-transform: uppercase;
+                    opacity: 0;
+                    transition: opacity 0.3s 0.1s;
+                }
+                .result-sub.show { opacity: 1; }
+
+                .info {
+                    font-size: 11px;
+                    color: var(--text-dim);
+                    text-align: center;
+                    line-height: 1.7;
+                    max-width: 300px;
+                }
+
+                .weight-readout {
+                    font-size: 10px;
+                    color: var(--text-dim);
+                    letter-spacing: 1px;
+                    opacity: 0;
+                    transition: opacity 0.3s 0.15s;
+                }
+                .weight-readout.show { opacity: 1; }
+            </style>
+        </head>
+
+    <body>
+
+    <div class="container">
+        <h1>Predicting <span class="t">T</span> or <span class="l">L</span></h1>
+        <div class="grid-wrapper">
+            <div id="grid" class="grid"></div>
+        </div>
+
+    <div class="controls">
+        <button id="predict">Predict</button>
+        <button id="clear">Clear</button>
+        </div>
+    </div>
+
+    <div class="result-box">
+        <div id="result-letter" class="result-letter"></div>
+        <div id="result-sub" class="result-sub"></div>
+        <div id="read-weight" class="weight-readout"></div>
+    </div>
+
+        <script>
+            
+            // Initialize Trained Weights 
+            const weights = [
+                0.40, 0.30, 0.40, 0.30,
+                -0.10, 0.10, 0.00, 0.00,
+                -0.20, -0.20, -0.10, -0.10,
+                -0.40, -0.20, 0.40, -0.30
+            ]; 
+
+            const bias = 0;
+
+            function activation_function(z) 
+            {
+                return z >= 0 ? 1 : -1;
+            }
+            
+            function dot_product(a, b) 
+            {
+                let sum = 0;    
+
+                for(let i=0; i < a.length; i++)
+                {
+                    sum += a[i] * b[i];
+                }
+
+                return sum;
+            }
+
+            function predict( inputs ) {
+                let linear_product = dot_product(inputs, weights) + bias;    
+                let y_pred  = activation_function(    linear_product    );
+                return { label: y_pred, z: linear_product };
+            }
+            
+            const grid = document.getElementById('grid');
+            const cells = [];
+
+            for (let i=0; i < 16; i++) 
+            {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.dataset.index = i;
+
+                cell.addEventListener('click', () => 
+                {
+                    cell.classList.toggle('on');
+                    clearResult();
+                });
+
+                grid.appendChild(cell);
+                cells.push(cell);
+            }
+
+            function readGrid() 
+            {
+                return cells.map(c => c.classList.contains('on') ? 1: -1);
+            }
+
+            function setGrid(pattern) 
+            {
+                pattern.forEach((v, i) => 
+                {
+                    cells[i].classList.toggle('on', v === 1);
+                });
+            }
+
+            // For Result Box Reference the UI to display the letter predicted
+            const resultLetter = document.getElementById('result-letter'); 
+            const resultSub = document.getElementById('result-sub');
+            const readWeight = document.getElementById('read-weight');
+
+            function clearResult() {
+                resultLetter.classList.remove('show', 'is-t', 'is-l');
+                resultSub.classList.remove('show');
+                readWeight.classList.remove('show');
+            }
+            
+
+            // Add a Predict Button
+
+            document.getElementById('predict').addEventListener('click', () => 
+
+            {
+                const inputs = readGrid();
+                const {label, z } = predict(inputs);
+                
+                resultLetter.textContent = label === 1 ? 'T' : 'L';
+                resultLetter.className = ' result-letter show ' + (label === 1 ? 'is-t' : 'is-l');
+
+                resultSub.textContent = label === 1 ? 'Classified as T' : 'Classified as L'
+                resultSub.classList.add('show');
+
+                readWeight.textContent = `z = ${z.toFixed(4)} -> y_pred = ${label}`;
+                readWeight.classList.add('show')
+
+            });
+
+
+            // Add a Button to Clear the Grid
+
+            document.getElementById('clear').addEventListener('click', () => 
+            {
+                cells.forEach(cell => cell.classList.remove('on'));
+                clearResult();
+            });
+
+        </script>
+    </body>
+</html>
